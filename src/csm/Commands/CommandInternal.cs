@@ -206,6 +206,8 @@ namespace CSM.Commands
                 // Add Color Surrogate
                 model[typeof(Color)].SetSurrogate(typeof(ColorSurrogate));
 
+                model[typeof(InstanceID)].SetSurrogate(typeof(InstanceIDSurrogate));
+
                 // Add base command to the protobuf model with all attributes
                 model.Add(typeof(CommandBase), true);
                 MetaType baseCmd = model[typeof(CommandBase)];

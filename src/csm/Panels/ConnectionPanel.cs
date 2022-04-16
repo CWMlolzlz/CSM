@@ -1,5 +1,8 @@
 ﻿using ColossalFramework.UI;
+using CSM.API;
 using CSM.API.Commands;
+using CSM.API.Networking.Status;
+using CSM.Commands.Data.Internal;
 using CSM.Helpers;
 using CSM.Networking;
 using UnityEngine;
@@ -14,6 +17,8 @@ namespace CSM.Panels
 
         private UIButton _connectedPlayersButton;
 
+        private UIButton _syncSessionButton;
+
         private UICheckBox _playerPointers;
         public static bool showPlayerPointers = false;
 
@@ -26,7 +31,7 @@ namespace CSM.Panels
             color = new Color32(110, 110, 110, 250);
 
             width = 360;
-            height = 320;
+            height = 400;
             relativePosition = PanelManager.GetCenterPosition(this);
 
             // Handle visible change events
@@ -50,8 +55,11 @@ namespace CSM.Panels
             // Connected Players window button
             _connectedPlayersButton = this.CreateButton("Player List", new Vector2(10, -200));
 
+            // Connected Players window button
+            _syncSessionButton = this.CreateButton("Sync session", new Vector2(10, -270));
+
             // Show Player Pointers
-            _playerPointers = this.CreateCheckBox("Show Player Pointers", new Vector2(10, -270));
+            _playerPointers = this.CreateCheckBox("Show Player Pointers", new Vector2(10, -340));
 
 
             _playerPointers.eventClicked += (component, param) =>
@@ -75,6 +83,31 @@ namespace CSM.Panels
             _connectedPlayersButton.eventClick += (component, param) =>
             {
                 PanelManager.ShowPanel<ConnectedPlayersPanel>();
+            };
+
+            _syncSessionButton.eventClick += (component, param) => 
+            {
+                if (MultiplayerManager.Instance.CurrentRole == MultiplayerRole.Client)
+                    {
+                        if (MultiplayerManager.Instance.GameBlocked)
+                        {
+                            Chat.Instance.PrintGameMessage("Please wait until the currently joining player is connected!");
+                        }
+                        else
+                        {
+                            Chat.Instance.PrintGameMessage("Requesting the save game from the server");
+
+                            MultiplayerManager.Instance.CurrentClient.Status =
+                                ClientStatus.Downloading;
+                            MultiplayerManager.Instance.BlockGameReSync();
+
+                            Command.SendToServer(new RequestWorldTransferCommand());
+                        }
+                    }
+                    else
+                    {
+                        Chat.Instance.PrintGameMessage("You are the server");
+                    }
             };
 
             base.Start();
@@ -108,6 +141,8 @@ namespace CSM.Panels
 
                 _disconnectButton.text = "Disconnect";
             }
+
+            _syncSessionButton.isEnabled = MultiplayerManager.Instance.CurrentRole == MultiplayerRole.Client;
         }
 
         private void Show(UIButton button)

@@ -7,6 +7,8 @@ using ColossalFramework;
 using ColossalFramework.UI;
 using CSM.API;
 using CSM.API.Commands;
+using CSM.Injections;
+using CSM.Injections.Tools;
 using CSM.API.Helpers;
 using CSM.API.Networking.Status;
 using CSM.Commands.Data.Internal;
@@ -141,10 +143,6 @@ namespace CSM.Panels
                         {
                             PrintGameMessage("Requesting the save game from the server");
 
-                            MultiplayerManager.Instance.CurrentClient.Status =
-                                ClientStatus.Downloading;
-                            MultiplayerManager.Instance.BlockGameReSync();
-
                             Command.SendToServer(new RequestWorldTransferCommand());
                         }
                     }
@@ -152,7 +150,30 @@ namespace CSM.Panels
                     {
                         PrintGameMessage("You are the server");
                     }
+                }),
+                new ChatCommand("test", "Tests", (command) => {
+
+                    var currentTool = Singleton<ToolManager>.instance.m_properties.CurrentTool;
+                    if (currentTool is DefaultTool) {
+
+                        InstanceID hoverInstance;
+                        int subindex = -1;
+                        ((DefaultTool) currentTool).GetHoverInstance(out hoverInstance, out subindex);
+                        PrintGameMessage("Requesting the save game from the server");
+
+                        var hoverCommand = new PlayerDefaultToolCommandHandler.Command {
+                            PlayerName = "Chat",
+                            HoveredInstanceID = hoverInstance,
+                            SubIndex = subindex
+                        };
+                        var handler = Commands.CommandInternal.Instance.GetCommandHandler(hoverCommand.GetType());
+                        handler.Parse(hoverCommand);
+
+                    }
+
+                    
                 })
+               
             };
         }
 
@@ -512,7 +533,7 @@ namespace CSM.Panels
                     if (UseChirper)
                     {
                         // Write message to Chirper panel
-                        ChirperMessage.ChirpPanel.AddMessage(new ChirperMessage(sender, msg), true);
+                        Container.ChirperMessage.ChirpPanel.AddMessage(new Container.ChirperMessage(sender, msg), true);
                     }
                     else
                     {

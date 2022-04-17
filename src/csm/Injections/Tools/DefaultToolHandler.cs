@@ -1,6 +1,5 @@
 using CSM.API;
 using CSM.API.Commands;
-using System.Collections.Generic;
 using CSM.Networking;
 using CSM.Panels;
 using ProtoBuf;
@@ -10,12 +9,12 @@ using ColossalFramework;
 using CSM.Container;
 using ColossalFramework.Math;
 
-namespace CSM.Injections
+namespace CSM.Injections.Tools
 {
     [HarmonyPatch(typeof(DefaultTool))]
     [HarmonyPatch("SimulationStep")]
-    public class ToolHandler
-    {
+    public class DefaultToolHandler {
+
         private static InstanceID lastInstanceId = InstanceID.Empty;
         private static int lastSubIndex = -1;
 
@@ -43,7 +42,7 @@ namespace CSM.Injections
                     }
 
                     // Send info to all clients
-                    Command.SendToAll(new DefaultToolHoverCommand
+                    Command.SendToAll(new PlayerDefaultToolCommandHandler.Command
                     {
                         PlayerName = playerName,
                         HoveredInstanceID = hoverInstance,
@@ -56,24 +55,35 @@ namespace CSM.Injections
         }    
     }
 
-    [HarmonyPatch(typeof(ToolManager))]
-    [HarmonyPatch("EndOverlayImpl")]
-    public class ToolManagerOverlayHandler {
-        public static void Postfix(RenderManager.CameraInfo cameraInfo)
-        {
-            var buildingManager = Singleton<BuildingManager>.instance;
-            var vehicleManager = Singleton<VehicleManager>.instance;
-            var districtManager = Singleton<DistrictManager>.instance;
-            var propManager = Singleton<PropManager>.instance;
-            var treeManager = Singleton<TreeManager>.instance;
-            var disasterManager = Singleton<DisasterManager>.instance;
-            var infoManager = Singleton<InfoManager>.instance;
+    public class PlayerDefaultToolCommandHandler : CommandHandler<PlayerDefaultToolCommandHandler.Command>
+    {
 
-            foreach (var playerHoveredState in DefaultToolHoverHandler.PlayerHoverInstanceIDs.Values)
-            {
-                InstanceID hoverInstance = playerHoveredState.Var1;
-                InstanceID hoverInstance2 = playerHoveredState.Var2;
-                int subIndex = playerHoveredState.Var3;
+        [ProtoContract]
+        public class Command : CommandBase, IPlayerToolRenderer
+        {
+            [ProtoMember(1)]
+            public string PlayerName { get; set; }
+            [ProtoMember(2)]
+            public InstanceID HoveredInstanceID { get; set; }
+
+            [ProtoMember(3)]
+            public InstanceID HoveredInstanceID2 { get; set; }
+
+            [ProtoMember(4)]
+            public int SubIndex { get; set; }
+
+            public void RenderOverlay(RenderManager.CameraInfo cameraInfo) {
+                InstanceID hoverInstance = HoveredInstanceID;
+                InstanceID hoverInstance2 = HoveredInstanceID2;
+                int subIndex = SubIndex;
+
+                var buildingManager = Singleton<BuildingManager>.instance;
+                var vehicleManager = Singleton<VehicleManager>.instance;
+                var districtManager = Singleton<DistrictManager>.instance;
+                var propManager = Singleton<PropManager>.instance;
+                var treeManager = Singleton<TreeManager>.instance;
+                var disasterManager = Singleton<DisasterManager>.instance;
+                var infoManager = Singleton<InfoManager>.instance;
 
                 Color playerHoverColor = Color.blue;
                 var alphaMult = 1.0f;
@@ -142,21 +152,15 @@ namespace CSM.Injections
                     // TODO: handle net segments
                 }
             }
+            
         }
 
-    }
-
-    public class DefaultToolHoverHandler : CommandHandler<DefaultToolHoverCommand>
-    {
-
-        public static Dictionary<string, Tuple<InstanceID, InstanceID, int>> PlayerHoverInstanceIDs { get; } = new Dictionary<string, Tuple<InstanceID, InstanceID, int>>();
-
-        public DefaultToolHoverHandler()
+        public PlayerDefaultToolCommandHandler()
         {
             TransactionCmd = false;
         }
 
-        protected override void Handle(DefaultToolHoverCommand command)
+        protected override void Handle(Command command)
         {
             if (!MultiplayerManager.Instance.IsConnected())
             {
@@ -164,22 +168,9 @@ namespace CSM.Injections
                 return;
             }
 
-            PlayerHoverInstanceIDs[command.PlayerName] = new Tuple<InstanceID, InstanceID, int>(command.HoveredInstanceID, command.HoveredInstanceID2, command.SubIndex);
+            ToolManagerOverlayRenderer.SetOverlayForPlayer(command.PlayerName, command); //new PlayerDefaultToolRenderer() //new Tuple<InstanceID, InstanceID, int>(command.HoveredInstanceID, command.HoveredInstanceID2, command.SubIndex);
         }
     }
 
-    [ProtoContract]
-    public class DefaultToolHoverCommand : CommandBase
-    {
-        [ProtoMember(1)]
-        public string PlayerName { get; set; }
-        [ProtoMember(2)]
-        public InstanceID HoveredInstanceID { get; set; }
-
-        [ProtoMember(3)]
-        public InstanceID HoveredInstanceID2 { get; set; }
-
-        [ProtoMember(4)]
-        public int SubIndex { get; set; }
-    }
+    
 }

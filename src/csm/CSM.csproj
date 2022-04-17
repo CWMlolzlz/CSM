@@ -114,7 +114,6 @@
     <Compile Include="Injections\PauseMenuHandler.cs" />
     <Compile Include="Injections\SpeedPauseHandler.cs" />
     <Compile Include="Injections\TickLoopHandler.cs" />
-    <Compile Include="Injections\ToolHandler.cs" />
     <Compile Include="Models\ColorSurrogate.cs" />
     <Compile Include="Models\QuaternionSurrogate.cs" />
     <Compile Include="Models\ControlPointSurrogate.cs" />
@@ -145,6 +144,8 @@
     <Compile Include="CSM.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\Serializer.cs" />
+    <Compile Include="Injections\Tools\DefaultToolHandler.cs" />
+    <Compile Include="Injections\Tools\ToolManagerOverlayRenderer.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="LiteNetLib">
